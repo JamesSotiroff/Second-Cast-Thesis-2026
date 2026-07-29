@@ -1,0 +1,40 @@
+@import "tailwindcss/base";
+@import "tailwindcss/components";
+@import "tailwindcss/utilities";
+
+:root {
+  --background: 40 20% 98%;
+  --foreground: 24 10% 10%;
+  --card: 0 0% 100%;
+  --card-foreground: 24 10% 10%;
+  --primary: 24 10% 20%;
+  --primary-foreground: 40 20% 98%;
+  --secondary: 30 12% 92%;
+  --secondary-foreground: 24 10% 20%;
+  --muted: 30 12% 92%;
+  --muted-foreground: 24 8% 40%;
+  --accent: 30 12% 92%;
+  --accent-foreground: 24 10% 20%;
+  --border: 30 10% 86%;
+  --input: 30 10% 86%;
+  --ring: 24 10% 20%;
+  --radius: 0.6rem;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  min-height: 100vh;
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+}
+
+a {
+  color: inherit;
+}
+
+input[type="range"] {
+  accent-color: hsl(var(--primary));
+}
