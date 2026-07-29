@@ -1,7 +1,12 @@
 "use client";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { ThesisEvidenceLink } from "@/components/ThesisEvidenceLink";
 import type { ModelOutputs } from "@/lib/model/types";
+import {
+  THESIS_CARBON_REDUCTION,
+  THESIS_MASS_REDUCTION,
+} from "@/lib/model/panelGeometry";
 import {
   formatCurrency,
   formatNumber,
@@ -67,8 +72,8 @@ export function ResultsPanel({ outputs, validation }: ResultsPanelProps) {
           />
           <Metric
             label="Truck Loads"
-            value={String(active.truckLoads)}
-            hint={`${formatNumber(outputs.transportKmTotal, 0)} km total hauling`}
+            value={`${active.truckLoads} delivery · ${active.recycledMaterialLoads} material`}
+            hint={`${formatNumber(active.panelDeliveryKm, 0)} km delivery · ${formatNumber(active.recycledMaterialKm, 0)} km recycled-material sourcing`}
           />
           <Metric
             label="Savings vs Solid Baseline"
@@ -92,18 +97,23 @@ export function ResultsPanel({ outputs, validation }: ResultsPanelProps) {
           <CardDescription>
             At current inputs, compared to ACADIA headline results (~33% mass, ~30%
             carbon).
+            <span className="mt-2 block">
+              <ThesisEvidenceLink evidenceId="headline-reductions">
+                Show the exact thesis blurb
+              </ThesisEvidenceLink>
+            </span>
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2">
           <Metric
             label="Modeled Mass Reduction"
             value={formatPercent(validation.massReductionPct)}
-            hint="Target from submission: ~33%"
+            hint={`Target from submission: ~${formatPercent(THESIS_MASS_REDUCTION * 100, 0)}`}
           />
           <Metric
             label="Modeled Carbon Reduction"
             value={formatPercent(validation.carbonReductionPct)}
-            hint="Target from submission: ~30%"
+            hint={`Target from submission: ~${formatPercent(THESIS_CARBON_REDUCTION * 100, 0)}`}
           />
         </CardContent>
       </Card>
@@ -116,7 +126,11 @@ export function ResultsPanel({ outputs, validation }: ResultsPanelProps) {
           <Metric label="Materials" value={formatCurrency(active.cost.materialsUsd)} />
           <Metric label="Formwork" value={formatCurrency(active.cost.formworkUsd)} />
           <Metric label="Labor" value={formatCurrency(active.cost.laborUsd)} />
-          <Metric label="Transport" value={formatCurrency(active.cost.transportUsd)} />
+          <Metric
+            label="Transport"
+            value={formatCurrency(active.cost.transportUsd)}
+            hint={`${formatCurrency(active.cost.panelDeliveryUsd)} delivery · ${formatCurrency(active.cost.recycledMaterialTransportUsd)} material sourcing`}
+          />
           <Metric label="Carbon Price" value={formatCurrency(active.cost.carbonCostUsd)} />
         </CardContent>
       </Card>

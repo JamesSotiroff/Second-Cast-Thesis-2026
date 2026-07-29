@@ -4,10 +4,12 @@ import {
   SCENARIO_LABELS,
   SOLID_PANEL_MASS_KG,
 } from "./panelGeometry";
+import { computeCarbonCost, computeMaterialCost } from "./economics";
 import {
   computeTransportKm,
   computeTruckLoads,
 } from "./transport";
+import { normalizeModelInputs } from "./validation";
 import type {
   CarbonBreakdown,
   CostBreakdown,
@@ -27,24 +29,10 @@ function computeMaterialCarbon(
     materials.virginAggregateKg * factors.virginAggregateKgCo2PerKg +
     materials.recycledAggregateKg * factors.recycledAggregateKgCo2PerKg +
     materials.foamCreteKg * factors.foamCreteKgCo2PerKg +
-    materials.sandKg * 0.005 +
-    materials.polymerKg * 2.5 +
-    materials.foamAgentKg * 1.2 +
-    materials.acceleratorKg * 1.5
-  );
-}
-
-function computeMaterialCost(
-  materials: MaterialBreakdown,
-  costs: ModelInputs["unitCosts"],
-): number {
-  return (
-    materials.cementKg * costs.cementPerKg +
-    materials.sandKg * costs.sandPerKg +
-    materials.polymerKg * costs.polymerPerKg +
-    materials.foamAgentKg * costs.foamAgentPerKg +
-    materials.acceleratorKg * costs.acceleratorPerKg +
-    (materials.recycledAggregateKg / 1000) * costs.recycledRubblePerTonne
+    materials.sandKg * factors.sandKgCo2PerKg +
+    materials.polymerKg * factors.polymerKgCo2PerKg +
+    materials.foamAgentKg * factors.foamAgentKgCo2PerKg +
+    materials.acceleratorKg * factors.acceleratorKgCo2PerKg
   );
 }
 
@@ -66,24 +54,37 @@ function evaluateScenario(
   );
 
   const truckLoads = computeTruckLoads(inputs.panelCount, inputs.batchSize);
-  const transportKm = computeTransportKm(
+  const panelDeliveryKm = computeTransportKm(
     inputs.transportKmOneWay,
     inputs.roundTrip,
     truckLoads,
   );
-
+  const recycledMaterialLoads = computeTruckLoads(
+    materials.recycledAggregateKg * inputs.panelCount,
+    inputs.recycledAggregateTruckCapacityKg,
+  );
+  const recycledMaterialKm = computeTransportKm(
+    inputs.recycledMaterialTransportKmOneWay,
+    inputs.roundTrip,
+    recycledMaterialLoads,
+  );
   const materialsKgCo2 = computeMaterialCarbon(materials, inputs.emissionFactors);
   const manufacturingKgCo2 =
     inputs.emissionFactors.manufacturingKwhPerPanel *
     inputs.emissionFactors.manufacturingKgCo2PerKwh *
     inputs.panelCount;
-  const transportKgCo2 =
-    transportKm * inputs.emissionFactors.truckingKgCo2PerKmPerLoad;
+  const panelDeliveryKgCo2 =
+    panelDeliveryKm * inputs.emissionFactors.truckingKgCo2PerKmPerLoad;
+  const recycledMaterialTransportKgCo2 =
+    recycledMaterialKm * inputs.emissionFactors.truckingKgCo2PerKmPerLoad;
+  const transportKgCo2 = panelDeliveryKgCo2 + recycledMaterialTransportKgCo2;
 
   const carbon: CarbonBreakdown = {
     materialsKgCo2: materialsKgCo2 * inputs.panelCount,
     manufacturingKgCo2,
     transportKgCo2,
+    panelDeliveryKgCo2,
+    recycledMaterialTransportKgCo2,
     totalKgCo2:
       materialsKgCo2 * inputs.panelCount + manufacturingKgCo2 + transportKgCo2,
   };
@@ -91,17 +92,25 @@ function evaluateScenario(
   const materialsUsd = computeMaterialCost(materials, inputs.unitCosts) * inputs.panelCount;
   const formworkUsd = inputs.unitCosts.formworkPerPanel * inputs.panelCount;
   const laborUsd = inputs.unitCosts.laborPerPanel * inputs.panelCount;
-  const transportUsd =
-    transportKm * inputs.unitCosts.truckingPerKm +
+  const panelDeliveryUsd =
+    panelDeliveryKm * inputs.unitCosts.truckingPerKm +
     truckLoads * inputs.unitCosts.truckingBasePerLoad;
-  const carbonCostUsd =
-    (carbon.totalKgCo2 / 1000) * inputs.carbonPricePerTonne;
+  const recycledMaterialTransportUsd =
+    recycledMaterialKm * inputs.unitCosts.truckingPerKm +
+    recycledMaterialLoads * inputs.unitCosts.truckingBasePerLoad;
+  const transportUsd = panelDeliveryUsd + recycledMaterialTransportUsd;
+  const carbonCostUsd = computeCarbonCost(
+    carbon.totalKgCo2,
+    inputs.carbonPricePerTonne,
+  );
 
   const cost: CostBreakdown = {
     materialsUsd,
     formworkUsd,
     laborUsd,
     transportUsd,
+    panelDeliveryUsd,
+    recycledMaterialTransportUsd,
     carbonCostUsd,
     totalUsd: materialsUsd + formworkUsd + laborUsd + transportUsd + carbonCostUsd,
   };
@@ -115,6 +124,9 @@ function evaluateScenario(
     cost,
     costPerPanelUsd: cost.totalUsd / Math.max(inputs.panelCount, 1),
     truckLoads,
+    recycledMaterialLoads,
+    panelDeliveryKm,
+    recycledMaterialKm,
     carbonSavingsVsSolidPct:
       solidCarbonTotal && solidCarbonTotal > 0
         ? ((solidCarbonTotal - carbon.totalKgCo2) / solidCarbonTotal) * 100
@@ -127,15 +139,16 @@ function evaluateScenario(
 }
 
 export function runModel(inputs: ModelInputs): ModelOutputs {
-  const solidResult = evaluateScenario(inputs, "solid");
+  const normalized = normalizeModelInputs(inputs);
+  const solidResult = evaluateScenario(normalized, "solid");
   const optimizedResult = evaluateScenario(
-    inputs,
+    normalized,
     "optimized",
     solidResult.carbon.totalKgCo2,
     solidResult.cost.totalUsd,
   );
   const kingStudResult = evaluateScenario(
-    inputs,
+    normalized,
     "kingStud",
     solidResult.carbon.totalKgCo2,
     solidResult.cost.totalUsd,
@@ -143,21 +156,20 @@ export function runModel(inputs: ModelInputs): ModelOutputs {
 
   const comparison = [solidResult, optimizedResult, kingStudResult];
   const active =
-    comparison.find((item) => item.scenario === inputs.scenario) ?? optimizedResult;
-
-  const truckLoads = computeTruckLoads(inputs.panelCount, inputs.batchSize);
-  const transportKmTotal = computeTransportKm(
-    inputs.transportKmOneWay,
-    inputs.roundTrip,
-    truckLoads,
-  );
+    comparison.find((item) => item.scenario === normalized.scenario) ?? optimizedResult;
 
   return {
     active,
     comparison,
-    panelCount: inputs.panelCount,
-    transportKmTotal,
-    truckLoads,
+    panelCount: normalized.panelCount,
+    transportKmTotal: active.panelDeliveryKm + active.recycledMaterialKm,
+    truckLoads: active.truckLoads,
+    transport: {
+      panelDeliveryKm: active.panelDeliveryKm,
+      recycledMaterialKm: active.recycledMaterialKm,
+      panelDeliveryLoads: active.truckLoads,
+      recycledMaterialLoads: active.recycledMaterialLoads,
+    },
   };
 }
 
@@ -165,10 +177,14 @@ export function getThesisValidationMetrics(inputs: ModelInputs): {
   massReductionPct: number;
   carbonReductionPct: number;
 } {
+  const normalized = normalizeModelInputs(inputs);
   const solidMass = SOLID_PANEL_MASS_KG;
-  const optimizedMass = computePanelMassKg("optimized", inputs.optimizationMassReduction);
-  const solid = evaluateScenario(inputs, "solid");
-  const optimized = evaluateScenario(inputs, "optimized");
+  const optimizedMass = computePanelMassKg(
+    "optimized",
+    normalized.optimizationMassReduction,
+  );
+  const solid = evaluateScenario(normalized, "solid");
+  const optimized = evaluateScenario(normalized, "optimized");
 
   return {
     massReductionPct: ((solidMass - optimizedMass) / solidMass) * 100,

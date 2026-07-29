@@ -25,10 +25,10 @@ export default function RootLayout({
             </div>
             <nav className="flex items-center gap-4 text-sm">
               <Link href="/" className="hover:underline">
-                Overview
-              </Link>
-              <Link href="/model/" className="hover:underline">
                 Interactive Model
+              </Link>
+              <Link href="/research/" className="hover:underline">
+                Research Modules
               </Link>
             </nav>
           </div>

@@ -4,8 +4,8 @@ import {
   MIDWEST_UNIT_COSTS,
   THESIS_EMISSION_FACTORS,
   THESIS_UNIT_COSTS,
-  THESIS_TRANSPORT_KM,
 } from "./defaults";
+import { THESIS_TRANSPORT_KM } from "@/lib/model/panelGeometry";
 
 export interface CityPreset extends MidwestPreset {
   state: string;
@@ -18,6 +18,8 @@ export const CITY_PRESETS: CityPreset[] = [
     label: "Thesis Default (Figure 9)",
     state: "Generic",
     description: "Matches ACADIA submission: 150 km haul, 26-panel batch.",
+    validationStatus: "thesis-cited",
+    sources: ["ACADIA 2026 submission, Figures 7–9"],
     transportKmOneWay: THESIS_TRANSPORT_KM,
     recyclingRadiusKm: 50,
     emissionFactors: THESIS_EMISSION_FACTORS,
@@ -28,6 +30,8 @@ export const CITY_PRESETS: CityPreset[] = [
     label: "Ann Arbor, MI",
     state: "Michigan",
     description: "UMich context; shorter haul to regional precast and C&D recycling.",
+    validationStatus: "provisional",
+    sources: ["Provisional project assumptions; awaiting supplied regional data"],
     transportKmOneWay: 80,
     recyclingRadiusKm: 35,
     emissionFactors: MIDWEST_EMISSION_FACTORS,
@@ -42,6 +46,8 @@ export const CITY_PRESETS: CityPreset[] = [
     label: "Detroit, MI",
     state: "Michigan",
     description: "Dense C&D recycling infrastructure; shorter trucking distances.",
+    validationStatus: "provisional",
+    sources: ["Provisional project assumptions; awaiting supplied regional data"],
     transportKmOneWay: 60,
     recyclingRadiusKm: 25,
     emissionFactors: MIDWEST_EMISSION_FACTORS,
@@ -56,6 +62,8 @@ export const CITY_PRESETS: CityPreset[] = [
     label: "Chicago, IL",
     state: "Illinois",
     description: "Larger metro area with longer average material haul distances.",
+    validationStatus: "provisional",
+    sources: ["Provisional project assumptions; awaiting supplied regional data"],
     transportKmOneWay: 120,
     recyclingRadiusKm: 45,
     emissionFactors: {
@@ -74,6 +82,8 @@ export const CITY_PRESETS: CityPreset[] = [
     label: "Columbus, OH",
     state: "Ohio",
     description: "Midwest average haul and material pricing.",
+    validationStatus: "provisional",
+    sources: ["Provisional project assumptions; awaiting supplied regional data"],
     transportKmOneWay: 100,
     recyclingRadiusKm: 40,
     emissionFactors: MIDWEST_EMISSION_FACTORS,
@@ -84,6 +94,8 @@ export const CITY_PRESETS: CityPreset[] = [
     label: "Custom",
     state: "User-defined",
     description: "Manual transport distance and unit costs.",
+    validationStatus: "user-defined",
+    sources: ["Values entered by the user"],
     transportKmOneWay: THESIS_TRANSPORT_KM,
     recyclingRadiusKm: 50,
     emissionFactors: THESIS_EMISSION_FACTORS,

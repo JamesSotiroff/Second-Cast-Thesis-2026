@@ -30,6 +30,10 @@ The interactive model implements drivers from the submission:
 
 Operational energy / thermal performance is excluded, matching the submission scope.
 
+Current Midwest regional factors and costs are provisional project assumptions.
+See [Model methodology](docs/METHODOLOGY.md) for equations, units, provenance,
+validation boundaries, and experimental-module status.
+
 ## Local development
 
 ```bash
@@ -51,9 +55,11 @@ Output is written to `out/` for GitHub Pages deployment.
 
 ```
 src/lib/model/          Pure TypeScript calculation engine
+src/lib/model/modules/  Experimental slab, column, thermal, and circular modules
 src/data/midwest/       Regional presets and defaults
 src/components/         Dashboard UI, charts, PDF reference
 public/docs/            ACADIA 2026 submission PDF
+docs/                   Methodology and model boundaries
 ```
 
 ## Citation

@@ -13,10 +13,3 @@ export function computeTransportKm(
   const tripMultiplier = roundTrip ? 2 : 1;
   return transportKmOneWay * tripMultiplier * truckLoads;
 }
-
-export function computeTransportMassKg(
-  panelMassKg: number,
-  panelCount: number,
-): number {
-  return panelMassKg * panelCount;
-}

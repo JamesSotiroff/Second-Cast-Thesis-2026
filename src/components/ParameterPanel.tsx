@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
+import { ThesisEvidenceLink } from "@/components/ThesisEvidenceLink";
 import { CITY_PRESETS } from "@/data/midwest/cities";
 import type { ModelInputs, PanelScenario } from "@/lib/model/types";
 import { formatNumber, formatPercent } from "@/lib/utils";
@@ -23,7 +24,7 @@ function NumberField({
   value,
   onChange,
   step = 1,
-  min,
+  min = 0,
   max,
   suffix,
 }: {
@@ -126,6 +127,11 @@ export function ParameterPanel({
           <CardTitle>Midwest Region Preset</CardTitle>
           <CardDescription>
             {selectedPreset?.description ?? "Select a Midwest city or thesis default."}
+            <span className="mt-2 block">
+              <ThesisEvidenceLink evidenceId="regional-factors">
+                Trace regional assumptions
+              </ThesisEvidenceLink>
+            </span>
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -143,6 +149,14 @@ export function ParameterPanel({
               ))}
             </Select>
           </div>
+          {selectedPreset ? (
+            <div className="rounded-md border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
+              <p className="font-medium uppercase tracking-wide">
+                {selectedPreset.validationStatus.replaceAll("-", " ")}
+              </p>
+              <p className="mt-1">{selectedPreset.sources.join("; ")}</p>
+            </div>
+          ) : null}
           <Button variant="outline" onClick={onReset}>
             Reset to Thesis Defaults
           </Button>
@@ -155,6 +169,14 @@ export function ParameterPanel({
           <CardDescription>Figure 9 batch and transport assumptions</CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
+          <div className="flex flex-wrap gap-4">
+            <ThesisEvidenceLink evidenceId="batch-and-distance">
+              Trace batch and distance
+            </ThesisEvidenceLink>
+            <ThesisEvidenceLink evidenceId="return-trip">
+              Trace return-trip assumption
+            </ThesisEvidenceLink>
+          </div>
           <SliderField
             label="Panel count"
             value={inputs.panelCount}
@@ -180,6 +202,27 @@ export function ParameterPanel({
             step={5}
             formatValue={(value) => `${formatNumber(value, 0)} km`}
           />
+          <SliderField
+            label="Recycled-material source distance (one-way)"
+            value={inputs.recycledMaterialTransportKmOneWay}
+            onChange={(value) =>
+              update({ recycledMaterialTransportKmOneWay: value })
+            }
+            min={0}
+            max={250}
+            step={5}
+            formatValue={(value) => `${formatNumber(value, 0)} km`}
+          />
+          <NumberField
+            label="Recycled-material truck capacity"
+            value={inputs.recycledAggregateTruckCapacityKg}
+            onChange={(value) =>
+              update({ recycledAggregateTruckCapacityKg: value })
+            }
+            step={500}
+            min={1}
+            suffix="kg"
+          />
           <label className="flex items-center gap-2 text-sm">
             <input
               type="checkbox"
@@ -194,6 +237,22 @@ export function ParameterPanel({
       <Card>
         <CardHeader>
           <CardTitle>Technical / Mix Design</CardTitle>
+          <CardDescription>
+            <span className="flex flex-wrap gap-4">
+              <ThesisEvidenceLink evidenceId="optimized-mass">
+                Trace optimized mass
+              </ThesisEvidenceLink>
+              <ThesisEvidenceLink evidenceId="king-stud-mass">
+                Trace king-stud mass
+              </ThesisEvidenceLink>
+              <ThesisEvidenceLink evidenceId="headline-reductions">
+                Trace reduction targets
+              </ThesisEvidenceLink>
+              <ThesisEvidenceLink evidenceId="mix-coefficients">
+                Trace mix assumptions
+              </ThesisEvidenceLink>
+            </span>
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
           <div className="space-y-2">
@@ -245,7 +304,14 @@ export function ParameterPanel({
       <Card>
         <CardHeader>
           <CardTitle>Emission Factors</CardTitle>
-          <CardDescription>Editable kg CO₂ factors cited in the submission scope</CardDescription>
+          <CardDescription>
+            Editable kg CO₂ factors; default values are provisional.
+            <span className="mt-2 block">
+              <ThesisEvidenceLink evidenceId="regional-factors">
+                Check source status
+              </ThesisEvidenceLink>
+            </span>
+          </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2">
           <NumberField
@@ -255,12 +321,50 @@ export function ParameterPanel({
             step={0.01}
           />
           <NumberField
+            label="Sand"
+            value={inputs.emissionFactors.sandKgCo2PerKg}
+            onChange={(value) => updateEmission("sandKgCo2PerKg", value)}
+            step={0.001}
+          />
+          <NumberField
+            label="Polymer"
+            value={inputs.emissionFactors.polymerKgCo2PerKg}
+            onChange={(value) => updateEmission("polymerKgCo2PerKg", value)}
+            step={0.1}
+          />
+          <NumberField
+            label="Foam agent"
+            value={inputs.emissionFactors.foamAgentKgCo2PerKg}
+            onChange={(value) => updateEmission("foamAgentKgCo2PerKg", value)}
+            step={0.1}
+          />
+          <NumberField
+            label="Accelerator"
+            value={inputs.emissionFactors.acceleratorKgCo2PerKg}
+            onChange={(value) => updateEmission("acceleratorKgCo2PerKg", value)}
+            step={0.1}
+          />
+          <NumberField
+            label="Virgin aggregate"
+            value={inputs.emissionFactors.virginAggregateKgCo2PerKg}
+            onChange={(value) =>
+              updateEmission("virginAggregateKgCo2PerKg", value)
+            }
+            step={0.001}
+          />
+          <NumberField
             label="Recycled aggregate"
             value={inputs.emissionFactors.recycledAggregateKgCo2PerKg}
             onChange={(value) =>
               updateEmission("recycledAggregateKgCo2PerKg", value)
             }
             step={0.001}
+          />
+          <NumberField
+            label="Foam-crete"
+            value={inputs.emissionFactors.foamCreteKgCo2PerKg}
+            onChange={(value) => updateEmission("foamCreteKgCo2PerKg", value)}
+            step={0.01}
           />
           <NumberField
             label="Trucking per km per load"
@@ -278,6 +382,15 @@ export function ParameterPanel({
             }
             step={0.1}
           />
+          <NumberField
+            label="Manufacturing electricity"
+            value={inputs.emissionFactors.manufacturingKgCo2PerKwh}
+            onChange={(value) =>
+              updateEmission("manufacturingKgCo2PerKwh", value)
+            }
+            step={0.01}
+            suffix="kg CO₂/kWh"
+          />
         </CardContent>
       </Card>
 
@@ -293,9 +406,39 @@ export function ParameterPanel({
             step={0.01}
           />
           <NumberField
+            label="Sand ($/kg)"
+            value={inputs.unitCosts.sandPerKg}
+            onChange={(value) => updateCost("sandPerKg", value)}
+            step={0.005}
+          />
+          <NumberField
+            label="Polymer ($/kg)"
+            value={inputs.unitCosts.polymerPerKg}
+            onChange={(value) => updateCost("polymerPerKg", value)}
+            step={0.1}
+          />
+          <NumberField
+            label="Foam agent ($/kg)"
+            value={inputs.unitCosts.foamAgentPerKg}
+            onChange={(value) => updateCost("foamAgentPerKg", value)}
+            step={0.1}
+          />
+          <NumberField
+            label="Accelerator ($/kg)"
+            value={inputs.unitCosts.acceleratorPerKg}
+            onChange={(value) => updateCost("acceleratorPerKg", value)}
+            step={0.1}
+          />
+          <NumberField
             label="Recycled rubble ($/tonne)"
             value={inputs.unitCosts.recycledRubblePerTonne}
             onChange={(value) => updateCost("recycledRubblePerTonne", value)}
+            step={1}
+          />
+          <NumberField
+            label="Virgin aggregate ($/tonne)"
+            value={inputs.unitCosts.virginAggregatePerTonne}
+            onChange={(value) => updateCost("virginAggregatePerTonne", value)}
             step={1}
           />
           <NumberField

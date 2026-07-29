@@ -33,6 +33,7 @@ export function ModelDashboard() {
     setInputs((current) => ({
       ...current,
       transportKmOneWay: preset.transportKmOneWay,
+      recycledMaterialTransportKmOneWay: preset.recyclingRadiusKm,
       emissionFactors: { ...preset.emissionFactors },
       unitCosts: { ...preset.unitCosts },
     }));

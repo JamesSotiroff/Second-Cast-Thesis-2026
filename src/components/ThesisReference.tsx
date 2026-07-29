@@ -1,51 +1,53 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { THESIS_EVIDENCE_EVENT } from "@/components/ThesisEvidenceLink";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  getThesisEvidence,
+  THESIS_EVIDENCE,
+  type EvidenceStatus,
+} from "@/data/thesis/evidence";
 import { THESIS_PDF_PATH } from "@/lib/utils";
 
-const citations = [
-  {
-    parameter: "Batch size (26 panels = 1 flatbed load)",
-    figure: "Figure 9",
-    page: 8,
-  },
-  {
-    parameter: "Transport distance (150 km one-way)",
-    figure: "Figure 9",
-    page: 8,
-  },
-  {
-    parameter: "Optimized panel mass (~156 kg)",
-    figure: "Figure 7",
-    page: 7,
-  },
-  {
-    parameter: "King-stud panel mass (~168 kg)",
-    figure: "Figure 8",
-    page: 7,
-  },
-  {
-    parameter: "Mass reduction (up to 33%) and embodied carbon (~30%)",
-    figure: "Section 4 / Figure 9",
-    page: 8,
-  },
-  {
-    parameter: "Foam-crete mix variables and density grading",
-    figure: "Figure 3",
-    page: 4,
-  },
-];
+const statusLabel: Record<EvidenceStatus, string> = {
+  direct: "Direct thesis quote",
+  derived: "Derived from thesis values",
+  provisional: "No thesis source",
+};
 
 export function ThesisReference() {
+  const [selectedId, setSelectedId] = useState("batch-and-distance");
+  const selected = getThesisEvidence(selectedId);
+  const pdfPath = selected.page
+    ? `${THESIS_PDF_PATH}#page=${selected.page}`
+    : THESIS_PDF_PATH;
+
+  useEffect(() => {
+    const handleEvidenceSelection = (event: Event) => {
+      setSelectedId((event as CustomEvent<string>).detail);
+    };
+    window.addEventListener(THESIS_EVIDENCE_EVENT, handleEvidenceSelection);
+    return () =>
+      window.removeEventListener(THESIS_EVIDENCE_EVENT, handleEvidenceSelection);
+  }, []);
+
   return (
-    <Card>
+    <Card id="thesis-evidence-panel" className="scroll-mt-6">
       <CardHeader>
-        <CardTitle>ACADIA 2026 Submission Reference</CardTitle>
+        <CardTitle>Trace Assumptions to Thesis Evidence</CardTitle>
         <CardDescription>
-          Second Cast: Functionally Graded Composite Walls from Recycled Concrete
-          and Foam-Crete. Manufacturing and transportation scope only — operational
-          performance is excluded per the submission.
+          Select an assumption to see its exact source passage highlighted. Derived
+          and provisional assumptions are labeled when no direct thesis blurb exists.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
+        <div className="rounded-md border border-border bg-muted/30 p-4 text-sm text-muted-foreground">
+          Thesis-cited geometry, reference masses, batching, and delivery distance
+          are listed below. Midwest prices, regional grid factors, and
+          recycled-material sourcing distances are provisional project assumptions
+          until authoritative datasets are supplied.
+        </div>
         <div className="flex flex-wrap gap-3">
           <a
             href={THESIS_PDF_PATH}
@@ -72,33 +74,90 @@ export function ThesisReference() {
           </a>
         </div>
 
-        <div className="grid gap-3 md:grid-cols-2">
-          {citations.map((item) => (
-            <div
-              key={item.parameter}
-              className="rounded-md border border-border bg-muted/30 p-3 text-sm"
-            >
-              <p className="font-medium">{item.parameter}</p>
-              <p className="text-muted-foreground">
-                {item.figure} —{" "}
+        <div className="grid gap-6 lg:grid-cols-[minmax(260px,0.8fr)_minmax(0,1.2fr)]">
+          <div className="space-y-2">
+            {THESIS_EVIDENCE.map((item) => (
+              <button
+                type="button"
+                key={item.id}
+                onClick={() => setSelectedId(item.id)}
+                aria-pressed={selectedId === item.id}
+                className={`w-full rounded-md border p-3 text-left text-sm transition-colors ${
+                  selectedId === item.id
+                    ? "border-primary bg-primary/5"
+                    : "border-border bg-muted/20 hover:bg-muted/50"
+                }`}
+              >
+                <span className="block font-medium">{item.assumption}</span>
+                <span className="mt-1 block text-xs text-muted-foreground">
+                  {statusLabel[item.status]}
+                  {item.page ? ` · PDF page ${item.page}` : ""}
+                </span>
+              </button>
+            ))}
+          </div>
+
+          <div
+            aria-live="polite"
+            className="rounded-lg border border-border bg-card p-5"
+          >
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  {statusLabel[selected.status]}
+                </p>
+                <h3 className="mt-1 text-lg font-semibold">{selected.assumption}</h3>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {selected.location}
+                </p>
+              </div>
+              {selected.page ? (
                 <a
-                  href={`${THESIS_PDF_PATH}#page=${item.page}`}
-                  className="underline underline-offset-2"
+                  href={pdfPath}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm font-medium underline underline-offset-2"
                 >
-                  PDF page {item.page}
+                  Open PDF page {selected.page}
                 </a>
-              </p>
+              ) : null}
             </div>
-          ))}
+
+            {selected.highlight ? (
+              <blockquote className="mt-5 rounded-md border-l-4 border-amber-500 bg-amber-50 p-4 text-sm leading-7 text-slate-900">
+                {selected.before}
+                <mark className="rounded bg-amber-300 px-1 font-medium text-slate-950">
+                  {selected.highlight}
+                </mark>
+                {selected.after}
+              </blockquote>
+            ) : (
+              <div className="mt-5 rounded-md border border-dashed border-border bg-muted/30 p-4 text-sm">
+                No direct thesis passage supports this assumption.
+              </div>
+            )}
+
+            <p className="mt-4 text-sm text-muted-foreground">
+              {selected.explanation}
+            </p>
+          </div>
         </div>
 
-        <div className="overflow-hidden rounded-lg border border-border">
-          <iframe
-            src={THESIS_PDF_PATH}
-            title="Second Cast ACADIA 2026 Submission"
-            className="h-[640px] w-full bg-white"
-          />
-        </div>
+        {selected.page ? (
+          <div className="overflow-hidden rounded-lg border border-border">
+            <iframe
+              key={pdfPath}
+              src={pdfPath}
+              title={`Second Cast thesis evidence: ${selected.assumption}`}
+              className="h-[640px] w-full bg-white"
+            />
+          </div>
+        ) : (
+          <div className="rounded-lg border border-dashed border-border p-5 text-sm text-muted-foreground">
+            The PDF viewer is hidden for this item because it is a derived or
+            application-only assumption without a source page.
+          </div>
+        )}
       </CardContent>
     </Card>
   );

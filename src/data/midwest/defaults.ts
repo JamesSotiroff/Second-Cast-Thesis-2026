@@ -9,6 +9,8 @@ export interface MidwestPreset {
   id: string;
   label: string;
   description: string;
+  validationStatus: "thesis-cited" | "provisional" | "user-defined";
+  sources: string[];
   transportKmOneWay: number;
   emissionFactors: EmissionFactors;
   unitCosts: UnitCosts;
@@ -16,6 +18,10 @@ export interface MidwestPreset {
 
 export const THESIS_EMISSION_FACTORS: EmissionFactors = {
   cementKgCo2PerKg: 0.82,
+  sandKgCo2PerKg: 0.005,
+  polymerKgCo2PerKg: 2.5,
+  foamAgentKgCo2PerKg: 1.2,
+  acceleratorKgCo2PerKg: 1.5,
   virginAggregateKgCo2PerKg: 0.005,
   recycledAggregateKgCo2PerKg: 0.002,
   foamCreteKgCo2PerKg: 0.15,
@@ -31,6 +37,7 @@ export const THESIS_UNIT_COSTS: UnitCosts = {
   foamAgentPerKg: 4.2,
   acceleratorPerKg: 6.0,
   recycledRubblePerTonne: 12,
+  virginAggregatePerTonne: 20,
   formworkPerPanel: 18,
   laborPerPanel: 42,
   truckingPerKm: 2.5,
@@ -56,6 +63,8 @@ export function createDefaultInputs(
     panelCount: THESIS_BATCH_SIZE,
     batchSize: THESIS_BATCH_SIZE,
     transportKmOneWay: THESIS_TRANSPORT_KM,
+    recycledMaterialTransportKmOneWay: 50,
+    recycledAggregateTruckCapacityKg: 18_000,
     roundTrip: true,
     optimizationMassReduction: THESIS_MASS_REDUCTION,
     recycledAggregatePct: 1,
@@ -67,21 +76,3 @@ export function createDefaultInputs(
     ...overrides,
   };
 }
-
-export const THESIS_PRESET: MidwestPreset = {
-  id: "thesis",
-  label: "Thesis Default (Figure 9)",
-  description: "150 km one-way, 26-panel flatbed batch, ACADIA submission assumptions.",
-  transportKmOneWay: THESIS_TRANSPORT_KM,
-  emissionFactors: THESIS_EMISSION_FACTORS,
-  unitCosts: THESIS_UNIT_COSTS,
-};
-
-export const MIDWEST_BASE_PRESET: MidwestPreset = {
-  id: "midwest",
-  label: "Midwest Regional Average",
-  description: "MISO grid factors and NRMCA-style Midwest material cost placeholders.",
-  transportKmOneWay: 100,
-  emissionFactors: MIDWEST_EMISSION_FACTORS,
-  unitCosts: MIDWEST_UNIT_COSTS,
-};

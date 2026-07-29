@@ -46,6 +46,13 @@ export function computePanelMassKg(
   optimizationMassReduction: number,
 ): number {
   const reference = getReferencePanelMassKg(scenario);
+  const reduction = Math.min(
+    Math.max(
+      Number.isFinite(optimizationMassReduction) ? optimizationMassReduction : 0,
+      0,
+    ),
+    THESIS_MASS_REDUCTION,
+  );
 
   if (scenario === "solid") {
     return reference;
@@ -53,14 +60,13 @@ export function computePanelMassKg(
 
   if (scenario === "optimized") {
     const baseline = SOLID_PANEL_MASS_KG;
-    return baseline * (1 - optimizationMassReduction);
+    return baseline * (1 - reduction);
   }
 
-  // King-stud: interpolate between optimized at max reduction and solid at zero
-  const optimizedAtThesis =
-    SOLID_PANEL_MASS_KG * (1 - THESIS_MASS_REDUCTION);
-  const t = optimizationMassReduction / THESIS_MASS_REDUCTION;
-  return KING_STUD_PANEL_MASS_KG + (optimizedAtThesis - KING_STUD_PANEL_MASS_KG) * t;
+  // Interpolate from a solid panel to the measured 168 kg king-stud panel.
+  const t = reduction / THESIS_MASS_REDUCTION;
+  return SOLID_PANEL_MASS_KG +
+    (KING_STUD_PANEL_MASS_KG - SOLID_PANEL_MASS_KG) * t;
 }
 
 export function getEffectiveFoamRatio(
@@ -102,8 +108,12 @@ export function computeMaterialBreakdown(
   const acceleratorKg = structuralMassKg * 0.002;
   const aggregateKg = structuralMassKg * 0.383;
 
-  const recycledAggregateKg = aggregateKg * recycledAggregatePct;
-  const virginAggregateKg = aggregateKg * (1 - recycledAggregatePct);
+  const recycledShare = Math.min(
+    Math.max(Number.isFinite(recycledAggregatePct) ? recycledAggregatePct : 0, 0),
+    1,
+  );
+  const recycledAggregateKg = aggregateKg * recycledShare;
+  const virginAggregateKg = aggregateKg * (1 - recycledShare);
   const foamAgentKg = foamCreteKg * 0.04;
 
   return {
